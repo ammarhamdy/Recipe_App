@@ -1,15 +1,19 @@
 package com.am.recipe.presentation.ui.common
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,7 +28,6 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.am.recipe.presentation.ui.theme.RecipeTheme
-import kotlinx.coroutines.delay
 import okhttp3.internal.toImmutableList
 
 object IconPath {
@@ -60,13 +63,30 @@ object IconPath {
     ).toNodes()
 }
 
-object Rand{
+object AniFactor{
     val rotations = listOf(-90f, -45f, 0f, 45f, 90f)
         .shuffled()
         .toImmutableList()
     val scales = listOf(.6f, .7f, .8f, .9f, 1f)
         .shuffled()
         .toImmutableList()
+    val BounceOutEasing = Easing { fraction ->
+        when {
+            fraction < 1 / 2.75f -> 7.5625f * fraction * fraction
+            fraction < 2 / 2.75f -> {
+                val t = fraction - 1.5f / 2.75f
+                7.5625f * t * t + 0.75f
+            }
+            fraction < 2.5 / 2.75 -> {
+                val t = fraction - 2.25f / 2.75f
+                7.5625f * t * t + 0.9375f
+            }
+            else -> {
+                val t = fraction - 2.625f / 2.75f
+                7.5625f * t * t + 0.984375f
+            }
+        }
+    }
 }
 
 
@@ -77,8 +97,41 @@ fun IconsBackGround(
     iconType: IconType = IconType.AREA,
     canAnimate: Boolean = true
 ) {
-    val iScale = remember { Animatable(if (canAnimate) .1f else 1f) }
-    val iScale2 = remember { Animatable(if (canAnimate) .1f else 1f) }
+    val infiniteTransition = rememberInfiniteTransition(label="infinite scale")
+    val scale1 by if (canAnimate)
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(
+                    durationMillis = 2000,
+                    delayMillis = 0,
+                    easing = AniFactor.BounceOutEasing
+                ),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "scale1"
+        )
+    else
+        remember { mutableFloatStateOf(1f) }
+
+    val scale2 by if (canAnimate)
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(
+                    durationMillis = 1000,
+                    delayMillis = 2000,
+                    easing = AniFactor.BounceOutEasing
+                ),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "scale2"
+        )
+    else
+        remember { mutableFloatStateOf(1f) }
+
     val vectorPainter = rememberVectorPainter(
         defaultWidth = 32f.dp,
         defaultHeight = 32f.dp,
@@ -118,10 +171,9 @@ fun IconsBackGround(
                 vectorPainter.run {
                     withTransform(
                         {
-                            rotate(Rand.rotations[(r+i)%5], vCenter)
+                            rotate(AniFactor.rotations[(r+i)%5], vCenter)
                             scale(
-                                Rand.scales[(r*i)%5] *
-                                        if(r%2==0) iScale.value else iScale2.value,
+                                AniFactor.scales[(r*i)%5] * if(r%2==0) scale1 else scale2,
                                 vCenter
                             )
                             translate(left = x, top = y)
@@ -133,24 +185,6 @@ fun IconsBackGround(
             }
         }
     }
-    if (canAnimate)
-        LaunchedEffect(Unit) {
-            iScale.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioHighBouncy,
-                    stiffness = Spring.StiffnessMedium
-                )
-            )
-            delay(700)
-            iScale2.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioHighBouncy,
-                    stiffness = Spring.StiffnessMedium
-                )
-            )
-        }
 }
 
 @Preview
