@@ -3,6 +3,14 @@
     <string name="search_screen_title">Search</string>
     <string name="meal_list_title">recipes</string>
     <string name="meal_detail_title">recipe details</string>
-    <string name="home_title">Home</string>
+    <string name="home_title">Recipe</string>
+    <string name="area">Area</string>
+    <string name="ingredient">Ingredient</string>
+    <string name="category">Category</string>
+
     <string name="back_button">back button</string>
+    <string name="http_error">request has not succeeded</string>
+    <string name="connection_error">connection error</string>
+    <string name="unexpected_error">unexpected error</string>
+    <string name="reload">reload</string>
 </resources>

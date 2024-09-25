@@ -10,4 +10,6 @@ object Constants {
 
     const val INGREDIENT_ENDPOINT = "list.php?i=list"
 
+    const val TIMEOUT_MILLIS = 5000L
+
 }
