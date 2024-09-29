@@ -28,14 +28,18 @@ import androidx.compose.ui.graphics.vector.Path
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.am.recipe.presentation.model.AniFactor
+import com.am.recipe.presentation.model.BgIcon
 import com.am.recipe.presentation.ui.theme.RecipeTheme
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 
 @Composable
 fun IconsBackGround(
     color: Color,
     errorColor: Color,
     modifier: Modifier = Modifier,
-    iconType: IconType = IconType.AREA,
+    bgIcon: BgIcon = BgIcon.AREA,
     loadingAnimationIsActive: Boolean = false,
     errorAnimationIsActive: Boolean = false
 ) {
@@ -68,18 +72,14 @@ fun IconsBackGround(
         remember { mutableStateOf(false) }
 
     val vectorPainter = rememberVectorPainter(
-        defaultWidth = 32f.dp,
-        defaultHeight = 32f.dp,
+        defaultWidth = 24f.dp,
+        defaultHeight = 24f.dp,
         viewportWidth = 960f,
         viewportHeight = 960f,
         autoMirror = true
     ) { _, _ ->
         Path(
-            when(iconType) {
-                IconType.AREA -> IconPath.area
-                IconType.INGREDIENT -> IconPath.ingredient
-                IconType.CATEGORY -> IconPath.category
-            },
+            bgIcon.pathNodes,
             fill= SolidColor(if (isOnError) errorColor else color)
         )
     }
@@ -119,6 +119,96 @@ fun IconsBackGround(
     }
 }
 
+@Composable
+fun MultiIconsBackGround(
+    color: Color,
+    errorColor: Color,
+    bgIcons: ImmutableList<BgIcon>,
+    modifier: Modifier = Modifier,
+    loadingAnimationIsActive: Boolean = false,
+    errorAnimationIsActive: Boolean = false
+) {
+    val infiniteTransition = rememberInfiniteTransition(label="infinite")
+    val scale by if (loadingAnimationIsActive)
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(
+                    durationMillis = 1000,
+                    delayMillis = 0,
+                    easing = AniFactor.BounceOutEasing
+                ),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "scale1"
+        )
+    else
+        remember { mutableFloatStateOf(1f) }
+    val isOnError by if(errorAnimationIsActive)
+        infiniteTransition.animateValue(
+            initialValue = true,
+            targetValue = false,
+            typeConverter = AniFactor.BooleanTwoWayConverter,
+            animationSpec = AniFactor.BooleanAniSpec,
+            label = "bool"
+        )
+    else
+        remember { mutableStateOf(false) }
+
+    val vectorPainters =  bgIcons.map {
+        rememberVectorPainter(
+            defaultWidth = 32f.dp,
+            defaultHeight = 32f.dp,
+            viewportWidth = 960f,
+            viewportHeight = 960f,
+            autoMirror = true
+        ) { _, _ ->
+            Path(
+                it.pathNodes,
+                fill= SolidColor(if (isOnError) errorColor else color)
+            )
+        }
+    }.toImmutableList()
+
+
+    Canvas(modifier){
+        val vectorPainter = vectorPainters.first()
+        //.. vector ..\\
+        val pad = vectorPainter.intrinsicSize.width / 3
+        val vw = vectorPainter.intrinsicSize.width + pad
+        val vh = vectorPainter.intrinsicSize.height + pad
+        //.. canvas ..\\
+        val width = size.width
+        val height = size.height
+        val edgeX = (width - ((width/vw).toInt() * vw)) / 2
+        val rowHeight = vh * 2
+        //.. draw vectors ..\\
+        //.. number of rows ..\\
+        repeat((height/(vh*2)).toInt()){ i ->
+            val yi = i * rowHeight + pad
+            val vector = vectorPainters[i%vectorPainters.size]
+            //.. each row ..\\
+            repeat((width/vw).toInt()){ r ->
+                val x = edgeX + r.toFloat() * vw - (pad / 2)
+                val y = if(r%2==0) vh + pad + yi else yi
+                val vCenter = Offset(x+vw/2, y+vh/2)
+                vector.run {
+                    withTransform(
+                        {
+                            rotate(AniFactor.rotations[(r+i)%5], vCenter)
+                            scale(AniFactor.scales[(r*i)%5] * scale, vCenter)
+                            translate(left = x, top = y)
+                        }
+                    ){
+                        draw(intrinsicSize, alpha = .5f)
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Preview
 @Composable
 private fun IconsBackGroundPreview() {
@@ -131,13 +221,22 @@ private fun IconsBackGroundPreview() {
                     .padding(8.dp)
             ) {
                 IconsBackGround(
-                    MaterialTheme.colorScheme.onSurface,
-                    MaterialTheme.colorScheme.tertiary,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    errorColor = MaterialTheme.colorScheme.tertiary,
                     Modifier.fillMaxSize(),
-                    IconType.INGREDIENT,
-                    false,
-                    errorAnimationIsActive = true
+                    bgIcon = BgIcon.RECIPE,
+                    true
                 )
+//                MultiIconsBackGround(
+//                    MaterialTheme.colorScheme.onSurface,
+//                    MaterialTheme.colorScheme.tertiary,
+//                    listOf(BgIcon.EGG, BgIcon.PIZZA, BgIcon.ORANGE)
+//                        .shuffled()
+//                        .toImmutableList(),
+//                    Modifier.fillMaxSize(),
+//                    true,
+//                    errorAnimationIsActive = false
+//                )
             }
         }
     }

@@ -1,4 +1,4 @@
-package com.am.recipe.presentation.ui.common
+package com.am.recipe.presentation.model
 
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.Easing

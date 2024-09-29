@@ -10,6 +10,10 @@ object Constants {
 
     const val INGREDIENT_ENDPOINT = "list.php?i=list"
 
+    const val FILTER_ENDPOINT = "filter.php?"
+
+    const val MEAL_DETAILS_ENDPOINT = "lookup.php?i="
+
     const val TIMEOUT_MILLIS = 5000L
 
 }

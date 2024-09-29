@@ -1,10 +1,7 @@
 package com.am.recipe.presentation.ui.common
 
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateValue
-import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +25,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import com.am.recipe.R
+import com.am.recipe.presentation.model.AniFactor
+import com.am.recipe.presentation.model.ErrorType
 import com.am.recipe.presentation.ui.theme.RecipeTheme
 
 @Composable

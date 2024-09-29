@@ -35,50 +35,51 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.am.recipe.R
+import com.am.recipe.presentation.model.BgIcon
+import com.am.recipe.presentation.model.HomePage
 import com.am.recipe.presentation.ui.theme.RecipeTheme
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 
 @Composable
 fun HomeBottomBar(
-    onSelected: (IconType) -> Unit,
-    currentPage: IconType
+    onSelected: (HomePage) -> Unit,
+    currentPage: HomePage
 ) {
     val iconColor = MaterialTheme.colorScheme.onSurface
-    val vectorPainterList = listOf(
-        rememberVectorPainter(
-            defaultWidth = 24f.dp,
-            defaultHeight = 24f.dp,
-            viewportWidth = 960f,
-            viewportHeight = 960f,
-            autoMirror = true
-        ){ _, _ ->
-            Path(IconPath.area, fill=SolidColor(iconColor))
-        },
-        rememberVectorPainter(
-            defaultWidth = 24f.dp,
-            defaultHeight = 24f.dp,
-            viewportWidth = 960f,
-            viewportHeight = 960f,
-            autoMirror = true
-        ){ _, _ ->
-            Path(IconPath.ingredient, fill=SolidColor(iconColor))
-        },
-        rememberVectorPainter(
-            defaultWidth = 24f.dp,
-            defaultHeight = 24f.dp,
-            viewportWidth = 960f,
-            viewportHeight = 960f,
-            autoMirror = true
-        ){ _, _ ->
-            Path(IconPath.category, fill=SolidColor(iconColor))
-        }
-    )
-    val keyVector = IconType.entries
-        .zip(vectorPainterList)
-        .toImmutableList()
     RoundedBottomBar(
-        keyVector,
+        HomePage.entries
+            .zip(listOf(
+                rememberVectorPainter(
+                    defaultWidth = 24f.dp,
+                    defaultHeight = 24f.dp,
+                    viewportWidth = 960f,
+                    viewportHeight = 960f,
+                    autoMirror = true
+                ) { _, _ ->
+                    Path(BgIcon.AREA.pathNodes, fill = SolidColor(iconColor))
+                },
+                rememberVectorPainter(
+                    defaultWidth = 24f.dp,
+                    defaultHeight = 24f.dp,
+                    viewportWidth = 960f,
+                    viewportHeight = 960f,
+                    autoMirror = true
+                ) { _, _ ->
+                    Path(BgIcon.INGREDIENT.pathNodes, fill = SolidColor(iconColor))
+                },
+                rememberVectorPainter(
+                    defaultWidth = 24f.dp,
+                    defaultHeight = 24f.dp,
+                    viewportWidth = 960f,
+                    viewportHeight = 960f,
+                    autoMirror = true
+                ) { _, _ ->
+                    Path(BgIcon.CATEGORY.pathNodes, fill = SolidColor(iconColor))
+                }
+            )
+            )
+            .toImmutableList(),
         currentPage,
         onSelected,
         iconColor,
@@ -90,9 +91,9 @@ fun HomeBottomBar(
 
 @Composable
 fun RoundedBottomBar(
-    keyVectors: ImmutableList<Pair<IconType, VectorPainter>>,
-    currentPage: IconType,
-    onSelected: (IconType) -> Unit,
+    keyVectors: ImmutableList<Pair<HomePage, VectorPainter>>,
+    currentPage: HomePage,
+    onSelected: (HomePage) -> Unit,
     color: Color,
     modifier: Modifier = Modifier
 ) {
@@ -153,7 +154,7 @@ fun BottomBarTab(
                         radius = size.width * strokeScale,
                         style = Stroke(1.dp.toPx())
                     )
-                    drawCircle(backgroundColor, size.width/2)
+                    drawCircle(backgroundColor, size.width / 2)
                 }
                 .graphicsLayer {
                     scaleX = iconScale
@@ -167,7 +168,7 @@ fun BottomBarTab(
 @Composable
 private fun HomeBottomBarPreview() {
     RecipeTheme {
-        HomeBottomBar({}, IconType.INGREDIENT)
+        HomeBottomBar({}, HomePage.INGREDIENT)
     }
 }
 

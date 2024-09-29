@@ -1,6 +1,6 @@
 package com.am.recipe.data
 
-import com.am.recipe.data.network.MealApi
+import com.am.recipe.data.remote.MealApi
 import com.am.recipe.data.repository.MealRepositoryImp
 import com.am.recipe.domain.model.AppContainer
 import com.am.recipe.domain.repository.MealRepository

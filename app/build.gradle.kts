@@ -81,4 +81,7 @@ dependencies {
     // immutable
     implementation(libs.kotlinx.collections.immutable)
 
+    // shape
+    implementation(libs.androidx.graphics.shapes)
+
 }

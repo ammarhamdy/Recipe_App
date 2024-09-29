@@ -19,13 +19,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.dimensionResource
@@ -33,13 +33,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.am.recipe.R
 import com.am.recipe.presentation.ui.common.ErrorPage
-import com.am.recipe.presentation.ui.common.ErrorType
+import com.am.recipe.presentation.model.ErrorType
 import com.am.recipe.presentation.ui.common.HomeBottomBar
-import com.am.recipe.presentation.ui.common.IconType
 import com.am.recipe.presentation.ui.common.IconsBackGround
-import com.am.recipe.presentation.ui.common.MealResponseState
+import com.am.recipe.domain.model.SearchKeyState
+import com.am.recipe.presentation.model.HomePage
+import com.am.recipe.presentation.ui.AppViewModelProvider
+import com.am.recipe.presentation.ui.common.GlassyLayer
 import com.am.recipe.presentation.ui.common.RecipeTopAppBar
 import com.am.recipe.presentation.ui.navigation.NavigationDestination
 import com.am.recipe.presentation.ui.theme.RecipeTheme
@@ -53,26 +56,27 @@ object HomeDestination: NavigationDestination{
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    navigateToMealList: () -> Unit,
-//    viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.viewModelFactory)
+    navigateToMealList: (String) -> Unit,
+    viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.viewModelFactory)
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    var page by remember { mutableStateOf(IconType.INGREDIENT) }
-    val onSelectPage = { newPage: IconType -> page = newPage  }
+    var page by remember { mutableStateOf(HomePage.INGREDIENT) }
+    val onSelectPage = { newPage: HomePage -> page = newPage  }
     val uiState = when(page){
-        IconType.AREA -> MealResponseState.Loading
-        IconType.INGREDIENT -> MealResponseState.Error(ErrorType.IO_ERROR)
-        IconType.CATEGORY -> MealResponseState.Success(fakeArea)
+        HomePage.AREA -> viewModel.areaUiState.collectAsState()
+        HomePage.INGREDIENT -> viewModel.ingredientsUiState.collectAsState()
+        HomePage.CATEGORY -> viewModel.categoryUiState.collectAsState()
     }
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             RecipeTopAppBar(
                 when(page){
-                    IconType.AREA -> stringResource(R.string.area)
-                    IconType.INGREDIENT -> stringResource(R.string.ingredient)
-                    IconType.CATEGORY -> stringResource(R.string.category)
+                    HomePage.AREA -> stringResource(R.string.area)
+                    HomePage.INGREDIENT -> stringResource(R.string.ingredient)
+                    HomePage.CATEGORY -> stringResource(R.string.category)
                 },
+                false,
                 scrollBehavior
             )
         },
@@ -82,7 +86,7 @@ fun HomeScreen(
     ) {
         HomeBody(
             page,
-            uiState,
+            uiState.value,
             navigateToMealList,
             Modifier
                 .fillMaxSize()
@@ -92,9 +96,9 @@ fun HomeScreen(
 
 @Composable
 fun HomeBody(
-    page: IconType,
-    uiState: MealResponseState,
-    onItemClicked: () -> Unit,
+    page: HomePage,
+    uiState: SearchKeyState,
+    onItemClicked: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier) {
@@ -102,20 +106,21 @@ fun HomeBody(
             MaterialTheme.colorScheme.onSurface,
             MaterialTheme.colorScheme.tertiary,
             Modifier.fillMaxSize(),
-            page,
-            uiState is MealResponseState.Loading,
-            uiState is MealResponseState.Error,
+            page.bgIcon,
+            uiState is SearchKeyState.Loading,
+            uiState is SearchKeyState.Error,
         )
-        if (uiState is MealResponseState.Error)
+        if (uiState is SearchKeyState.Error)
             ErrorMessCard(uiState.errorType, Modifier.fillMaxSize())
-        else if (uiState is MealResponseState.Success)
+        else if (uiState is SearchKeyState.Success)
             ItemsList(
-                uiState.items,
+                uiState.keys,
                 onItemClicked,
                 Modifier
                     .fillMaxWidth()
-                    .padding(dimensionResource(R.dimen.small_padding))
+                    .padding(horizontal = dimensionResource(R.dimen.small_padding))
             )
+
     }
 }
 
@@ -141,7 +146,7 @@ fun ErrorMessCard(
 @Composable
 fun ItemsList(
     itemsList: List<String>,
-    onItemClicked: () -> Unit,
+    onItemClicked: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val itemModifier = Modifier
@@ -152,7 +157,7 @@ fun ItemsList(
         modifier = modifier
     ) {
         itemsIndexed(itemsList, key= { index, _ -> index } ){ index, item ->
-            ItemCard(item, onItemClicked, itemModifier, index%2 == 0)
+            ItemCard(item, { onItemClicked(item) }, itemModifier, index%2 == 0)
         }
     }
 }
@@ -169,24 +174,10 @@ fun ItemCard(
         modifier = modifier,
         contentAlignment = if (left) Alignment.CenterStart else Alignment.CenterEnd
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.47f)
-                .fillMaxHeight()
-                .graphicsLayer {
-                    shape = RoundedCornerShape(8.dp)
-                    clip = true
-                    alpha = 0.25f
-                }
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            color.copy(alpha = 0.4f),
-                            color.copy(alpha = 0.15f)
-                        )
-                    )
-                )
-        )
+        GlassyLayer(color,
+            Modifier
+                .fillMaxWidth(.47f)
+                .fillMaxHeight())
         Card(
             onClick = onClick,
             shape = RoundedCornerShape(8.dp),
@@ -200,8 +191,7 @@ fun ItemCard(
         ) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .fillMaxSize()
+                modifier = Modifier.fillMaxSize()
             ) {
                 Text(
                     text = text,
@@ -213,14 +203,12 @@ fun ItemCard(
         }
     }
 }
-/*
 
-* */
 @Preview
 @Composable
 private fun HomeScreenPreview() {
     RecipeTheme(darkTheme = true) {
-        HomeScreen {}
+        HomeScreen({})
     }
 }
 
@@ -228,34 +216,33 @@ private fun HomeScreenPreview() {
 @Composable
 private fun ItemsListScreenPreview() {
     RecipeTheme(darkTheme = true) {
-        val uiState = MealResponseState.Success(fakeArea)
+        val fakeArea = listOf(
+            "Egyptian",
+            "American",
+            "British",
+            "Canadian",
+            "Chinese",
+            "Croatian",
+            "Dutch",
+            "Filipino",
+            "French",
+            "Greek",
+            "Egyptian",
+            "American",
+            "British",
+            "Canadian",
+            "Chinese",
+            "Croatian",
+            "Dutch",
+            "Filipino",
+            "French",
+            "Greek",
+        ).toImmutableList()
+        val uiState = SearchKeyState.Success(fakeArea)
         HomeBody(
-            IconType.AREA,
+            HomePage.AREA,
             uiState,
             {},
         )
     }
 }
-
-val fakeArea = listOf(
-    "Egyptian",
-    "American",
-    "British",
-    "Canadian",
-    "Chinese",
-    "Croatian",
-    "Dutch",
-    "Filipino",
-    "French",
-    "Greek",
-    "Egyptian",
-    "American",
-    "British",
-    "Canadian",
-    "Chinese",
-    "Croatian",
-    "Dutch",
-    "Filipino",
-    "French",
-    "Greek",
-).toImmutableList()

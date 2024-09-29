@@ -2,7 +2,7 @@
     <string name="app_name">Recipe</string>
     <string name="search_screen_title">Search</string>
     <string name="meal_list_title">recipes</string>
-    <string name="meal_detail_title">recipe details</string>
+    <string name="recipe_title">recipe</string>
     <string name="home_title">Recipe</string>
     <string name="area">Area</string>
     <string name="ingredient">Ingredient</string>
@@ -13,4 +13,6 @@
     <string name="connection_error">connection error</string>
     <string name="unexpected_error">unexpected error</string>
     <string name="reload">reload</string>
+
+    <string name="unknown_modified_date">Unknown modified date</string>
 </resources>

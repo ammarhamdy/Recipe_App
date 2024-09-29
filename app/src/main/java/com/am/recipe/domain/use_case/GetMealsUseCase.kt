@@ -1,32 +1,31 @@
 package com.am.recipe.domain.use_case
 
-import com.am.recipe.data.remote.dto.area.toAreasList
+import com.am.recipe.domain.model.MealsState
 import com.am.recipe.domain.repository.MealRepository
 import com.am.recipe.presentation.model.ErrorType
-import com.am.recipe.domain.model.SearchKeyState
 import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
 import java.io.IOException
 
-class GetAreasUseCase(
+class GetMealsUseCase(
     private val mealRepository: MealRepository
-){
+) {
 
-    operator fun invoke() = flow {
-        try {
+    operator fun invoke(filterBy: String) = flow {
+        try{
             emit(
-                SearchKeyState.Success(
+                MealsState.Success(
                     mealRepository
-                        .getAreas()
-                        .flatMap { it.toAreasList() }
+                        .getMeals(filterBy)
+                        .flatMap { it.meals }
                 )
             )
         } catch (httpE: HttpException) {
-            emit(SearchKeyState.Error(ErrorType.HTTP_ERROR))
+            emit(MealsState.Error(ErrorType.HTTP_ERROR))
         } catch (ioE: IOException) {
-            emit(SearchKeyState.Error(ErrorType.IO_ERROR))
+            emit(MealsState.Error(ErrorType.IO_ERROR))
         } catch (e: Exception) {
-            emit(SearchKeyState.Error(ErrorType.UNEXPECTED_ERROR))
+            emit(MealsState.Error(ErrorType.UNEXPECTED_ERROR))
         }
     }
 
