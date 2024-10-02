@@ -51,7 +51,6 @@ import com.am.recipe.presentation.ui.AppViewModelProvider
 import com.am.recipe.presentation.ui.common.AlertMessCard
 import com.am.recipe.presentation.ui.common.ErrorMessCard
 import com.am.recipe.presentation.ui.common.GlassyLayer
-import com.am.recipe.presentation.ui.common.MultiIconsBackGround
 import com.am.recipe.presentation.ui.common.RecipeTopAppBar
 import com.am.recipe.presentation.ui.common.WaveMultiIconsBackGround
 import com.am.recipe.presentation.ui.navigation.NavigationDestination

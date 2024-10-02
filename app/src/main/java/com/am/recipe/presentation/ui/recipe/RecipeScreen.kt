@@ -71,7 +71,6 @@ import com.am.recipe.presentation.model.BgIcon
 import com.am.recipe.presentation.ui.AppViewModelProvider
 import com.am.recipe.presentation.ui.common.ErrorMessCard
 import com.am.recipe.presentation.ui.common.GlassyLayer
-import com.am.recipe.presentation.ui.common.IconsBackGround
 import com.am.recipe.presentation.ui.common.RecipeTopAppBar
 import com.am.recipe.presentation.ui.common.WaveIconsBackGround
 import com.am.recipe.presentation.ui.navigation.NavigationDestination
