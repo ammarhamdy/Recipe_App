@@ -1,8 +1,17 @@
 package com.am.recipe.presentation.ui.recipe
 
+import android.app.DownloadManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,9 +20,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -23,15 +34,22 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -40,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -47,18 +66,21 @@ import coil.request.ImageRequest
 import com.am.recipe.R
 import com.am.recipe.domain.model.Recipe
 import com.am.recipe.domain.model.RecipeState
+import com.am.recipe.domain.model.anType
 import com.am.recipe.presentation.model.BgIcon
 import com.am.recipe.presentation.ui.AppViewModelProvider
+import com.am.recipe.presentation.ui.common.ErrorMessCard
 import com.am.recipe.presentation.ui.common.GlassyLayer
 import com.am.recipe.presentation.ui.common.IconsBackGround
 import com.am.recipe.presentation.ui.common.RecipeTopAppBar
-import com.am.recipe.presentation.ui.home.ErrorMessCard
+import com.am.recipe.presentation.ui.common.WaveIconsBackGround
 import com.am.recipe.presentation.ui.navigation.NavigationDestination
 import com.am.recipe.presentation.ui.theme.RecipeTheme
 import com.am.recipe.util.Util.getGoogleLink
 import com.am.recipe.util.Util.getYoutubeLink
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.delay
 
 
 object RecipeDestination: NavigationDestination {
@@ -71,64 +93,141 @@ object RecipeDestination: NavigationDestination {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeScreen(
+    navigateUp: () -> Unit,
     viewModel: RecipeViewModel = viewModel(factory = AppViewModelProvider.viewModelFactory)
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    val uiState = RecipeState.Loading
+    val pullToRefresh = rememberPullToRefreshState()
+    val uiState = viewModel.recipeUiState.collectAsState()
+    val exportState = viewModel.exportState.collectAsState()
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            RecipeTopAppBar(stringResource(RecipeDestination.titleRes), true, scrollBehavior)
+            RecipeTopAppBar(
+                stringResource(RecipeDestination.titleRes),
+                true,
+                scrollBehavior,
+                navigateUp = navigateUp
+            )
         }
     ) {
-        RecipeBody(
-            uiState,
-            viewModel::exportToLocalStorage,
-            Modifier.padding(top = it.calculateTopPadding())
-        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .nestedScroll(pullToRefresh.nestedScrollConnection)
+        ){
+            RecipeBody(
+                uiState.value,
+                exportState.value,
+                viewModel::exportToLocalStorage,
+                Modifier.padding(top = it.calculateTopPadding())
+            )
+            PullToRefreshContainer(
+                state = pullToRefresh,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(it)
+            )
+        }
+        if(pullToRefresh.isRefreshing)
+            LaunchedEffect(true) { viewModel.reload() }
+        when(uiState.value){
+            is RecipeState.Error -> LaunchedEffect(true) {
+                delay(500L)
+                pullToRefresh.endRefresh()
+            }
+            RecipeState.Loading -> Unit
+            is RecipeState.Success -> LaunchedEffect(true) {
+                delay(300L)
+                pullToRefresh.endRefresh()
+            }
+        }
     }
 }
 
 @Composable
 fun RecipeBody(
     uiState: RecipeState,
-    saveRecipe: () -> Unit,
+    exportState: Boolean,
+    exportRecipe: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier){
-        IconsBackGround(
+    val parentSize = remember { mutableIntStateOf(0) }
+    Box(
+        modifier.onGloballyPositioned { parentSize.intValue = it.size.height }
+    ){
+        WaveIconsBackGround(
             MaterialTheme.colorScheme.onBackground,
             MaterialTheme.colorScheme.tertiary,
-            Modifier.fillMaxSize(),
+            parentSize.intValue,
             BgIcon.RECIPE,
-            uiState is RecipeState.Loading,
-            uiState is RecipeState.Error,
+            uiState.anType()
         )
         if (uiState is RecipeState.Error)
             ErrorMessCard(uiState.errorType, Modifier.fillMaxSize())
         else if (uiState is RecipeState.Success)
-            RecipeContent(uiState.recipe, saveRecipe)
+            RecipeContent(uiState.recipe, exportState, exportRecipe)
+        MessageCard(exportState)
     }
 }
 
 @Composable
+private fun MessageCard(show: Boolean) {
+    val context = LocalContext.current
+    AnimatedVisibility(
+        visible = show,
+        enter = slideInVertically(
+            // Enters by sliding down from offset -fullHeight to 0.
+            initialOffsetY = { fullHeight -> -fullHeight },
+            animationSpec = tween(durationMillis = 150, easing = LinearOutSlowInEasing)
+        ),
+        exit = slideOutVertically(
+            // Exits by sliding up from offset 0 to -fullHeight.
+            targetOffsetY = { fullHeight -> -fullHeight },
+            animationSpec = tween(durationMillis = 250, easing = FastOutLinearInEasing)
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { openFile(context) },
+            color = MaterialTheme.colorScheme.secondary,
+            shadowElevation = 18.dp
+        ) {
+            Text(
+                text = stringResource(R.string.recipe_is_exported),
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    }
+}
+
+private fun openFile(context: Context) =
+    try { context.startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS)) }
+    catch (ignored: Exception){}
+
+@Composable
 fun RecipeContent(
     recipe: Recipe,
-    saveRecipe: () -> Unit,
+    exportButtonIsEnabled: Boolean,
+    exportRecipe: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val smallPadding = dimensionResource(R.dimen.small_padding)
     Column(
         verticalArrangement = Arrangement.spacedBy(smallPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.verticalScroll(rememberScrollState())
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(vertical = dimensionResource(R.dimen.small_padding))
     ) {
         RecipeHeader(
             recipe.title,
             recipe.thumb,
             recipe.youtubeLink,
             recipe.sourceLink,
-            saveRecipe,
+            exportButtonIsEnabled,
+            exportRecipe,
             Modifier.padding(smallPadding)
         )
         RecipeDescriptionCard(
@@ -151,19 +250,31 @@ fun RecipeHeader(
     thumb: String,
     youtubeLink: String?,
     sourceLink: String?,
-    saveRecipe: () -> Unit,
+    exportButtonIsEnabled: Boolean,
+    exportRecipe: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(contentAlignment = Alignment.Center, modifier = modifier) {
         GlassyLayer(MaterialTheme.colorScheme.primary, Modifier.matchParentSize())
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Title(title, Modifier.padding(dimensionResource(R.dimen.tiny_padding)))
-            RecipeThump(thumb)
+            Box(
+                contentAlignment = Alignment.TopCenter,
+                modifier = Modifier.padding(top = dimensionResource(R.dimen.small_padding))
+            ){
+                RecipeThump(thumb)
+                Title(
+                    title,
+                    Modifier
+                        .graphicsLayer { translationY = (size.height / 2) * -1 }
+                        .padding(dimensionResource(R.dimen.tiny_padding))
+                )
+            }
             RecipeActions(
                 title,
                 youtubeLink,
                 sourceLink,
-                saveRecipe,
+                exportButtonIsEnabled,
+                exportRecipe,
                 Modifier.padding(dimensionResource(R.dimen.tiny_padding))
             )
         }
@@ -175,12 +286,19 @@ fun Title(
     text: String,
     modifier: Modifier = Modifier
 ) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        textAlign = TextAlign.Center,
+    Card(
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.secondaryContainer.copy(.95f)),
+        elevation = CardDefaults.cardElevation(dimensionResource(R.dimen.elevation)),
         modifier = modifier
-    )
+    ) {
+        Text(
+            text = text,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(dimensionResource(R.dimen.tiny_padding))
+        )
+    }
 }
 
 @Composable
@@ -205,7 +323,8 @@ fun RecipeActions(
     title: String,
     youtubeLink: String?,
     sourceLink: String?,
-    saveRecipe: () -> Unit,
+    exportButtonIsEnabled: Boolean,
+    exportRecipe: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -242,7 +361,10 @@ fun RecipeActions(
             )
         }
 
-        FilledTonalIconButton(onClick =  saveRecipe ) {
+        FilledTonalIconButton(
+            enabled = !exportButtonIsEnabled,
+            onClick =  exportRecipe
+        ) {
             Icon(
                 painter = painterResource(R.drawable.download_24px),
                 contentDescription = null
@@ -276,6 +398,7 @@ fun RecipeDescriptionCard(
         ) {
             Card(
                 shape = RoundedCornerShape(topStart = tinyPadding, topEnd = tinyPadding),
+                elevation = CardDefaults.cardElevation(dimensionResource(R.dimen.elevation)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -297,7 +420,8 @@ fun RecipeDescriptionCard(
             }
             lastModificationDate?.let {
                 Card(
-                    shape = RoundedCornerShape(0.dp),
+                    shape = RoundedCornerShape(4.dp),
+                    elevation = CardDefaults.cardElevation(dimensionResource(R.dimen.elevation)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
@@ -311,6 +435,7 @@ fun RecipeDescriptionCard(
             }
             Card(
                 onClick = expandShrinkAction,
+                elevation = CardDefaults.cardElevation(dimensionResource(R.dimen.elevation)),
                 shape = RoundedCornerShape(
                     bottomStart = tinyPadding,
                     bottomEnd = tinyPadding
@@ -347,57 +472,25 @@ fun RecipeIngredientsCard(
             modifier = Modifier.padding(tinyPadding)
         ) {
             when (ingredientMeasureList.size) {
-                1 ->
-                    Card(
-                        shape = RoundedCornerShape(topStart = tinyPadding, topEnd = tinyPadding),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        IngredientText(ingredientMeasureList.first())
-                    }
-
+                1 -> IngredientText(ingredientMeasureList.first(), tinyPadding)
                 2 ->
                     Column(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Card(
-                            shape = RoundedCornerShape(topStart = tinyPadding, topEnd = tinyPadding),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            IngredientText(ingredientMeasureList.first())
-                        }
-                        Card(
-                            shape = RoundedCornerShape(bottomStart = tinyPadding, bottomEnd = tinyPadding),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            IngredientText(ingredientMeasureList.last())
-                        }
+                        TopIngredientText(ingredientMeasureList.first(), tinyPadding)
+                        BottomIngredientText(ingredientMeasureList.last(), tinyPadding)
                     }
 
                 else -> Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Card(
-                        shape = RoundedCornerShape(topStart = tinyPadding, topEnd = tinyPadding),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        IngredientText(ingredientMeasureList.first())
-                    }
-                    ingredientMeasureList.subList(1, ingredientMeasureList.size-1).forEach{ _ ->
-                        Card(
-                            shape = RoundedCornerShape(0.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            IngredientText(ingredientMeasureList.last())
-                        }
-                    }
-                    Card(
-                        shape = RoundedCornerShape(bottomStart = tinyPadding, bottomEnd = tinyPadding),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        IngredientText(ingredientMeasureList.last())
-                    }
+                    TopIngredientText(ingredientMeasureList.first(), tinyPadding)
+                    ingredientMeasureList
+                        .subList(1, ingredientMeasureList.size-1)
+                        .forEach{ IngredientText(it, 4.dp) }
+                    BottomIngredientText(ingredientMeasureList.last(), tinyPadding)
                 }
             }
 
@@ -406,15 +499,58 @@ fun RecipeIngredientsCard(
 }
 
 @Composable
-fun IngredientText(text: String) {
-    Text(
-        text.replace('#', ' '),
-        style = MaterialTheme.typography.titleMedium,
-        textAlign = TextAlign.Center,
+fun TopIngredientText(text: String, padding: Dp) {
+    Card(
+        shape = RoundedCornerShape(topStart = padding, topEnd = padding),
+        elevation = CardDefaults.cardElevation(dimensionResource(R.dimen.elevation)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text.replace('#', ' '),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(dimensionResource(R.dimen.tiny_padding))
+        )
+    }
+}
+
+@Composable
+fun IngredientText(text: String, padding: Dp) {
+    Card(
+        shape = RoundedCornerShape(padding),
+        elevation = CardDefaults.cardElevation(dimensionResource(R.dimen.elevation)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text.replace('#', ' '),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(dimensionResource(R.dimen.tiny_padding))
+        )
+    }
+}
+
+@Composable
+fun BottomIngredientText(text: String, padding: Dp) {
+    Card(
+        shape = RoundedCornerShape(bottomStart = padding, bottomEnd = padding),
+        elevation = CardDefaults.cardElevation(dimensionResource(R.dimen.elevation)),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(dimensionResource(R.dimen.tiny_padding))
-    )
+    ) {
+        Text(
+            text.replace('#', ' '),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(dimensionResource(R.dimen.tiny_padding))
+        )
+    }
 }
 
 @Preview(showBackground = true)
@@ -432,6 +568,7 @@ private fun RecipeContentPreview() {
                     "aaaa#AAAAA",
                     "aaaa#AAAAA",
                     "aaaa#AAAAA",
+                    "aaaa#AAAAA",
                 ),
                 "15/65/2044",
                 null,
@@ -440,7 +577,7 @@ private fun RecipeContentPreview() {
             val uiState = RecipeState.Success(fakeRecipe)
 //            val uiState = RecipeState.Error(ErrorType.IO_ERROR)
 //            val uiState = RecipeState.Loading
-            RecipeBody(uiState, {}, Modifier.fillMaxSize())
+            RecipeBody(uiState, true, {}, Modifier.fillMaxSize())
         }
     }
 }

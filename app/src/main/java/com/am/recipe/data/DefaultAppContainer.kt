@@ -14,8 +14,8 @@ class DefaultAppContainer : AppContainer {
 
     private val retrofit = Retrofit
         .Builder()
-        .addConverterFactory(Json.asConverterFactory("application/json".toMediaType()))
         .baseUrl(BAS_URL)
+        .addConverterFactory(Json.asConverterFactory("application/json".toMediaType()))
         .build()
 
     private val retrofitService: MealApi by lazy {

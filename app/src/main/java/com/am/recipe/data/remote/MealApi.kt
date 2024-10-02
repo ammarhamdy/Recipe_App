@@ -12,30 +12,40 @@ import com.am.recipe.util.Constants.INGREDIENT_ENDPOINT
 import com.am.recipe.util.Constants.MEAL_DETAILS_ENDPOINT
 import retrofit2.http.GET
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 
 interface MealApi {
 
     @GET(AREA_ENDPOINT)
-    suspend fun getAreas(): List<AreaDto>
+    suspend fun getAreas(): AreaDto
 
     @GET(CATEGORY_ENDPOINT)
-    suspend fun getCategories(): List<CategoryDto>
+    suspend fun getCategories(): CategoryDto
 
     @GET(INGREDIENT_ENDPOINT)
-    suspend fun getIngredients(): List<IngredientDto>
+    suspend fun getIngredients(): IngredientDto
 
-    /*
-    * filterBy could be (i=ingredient, a=area, c=category)
-    * */
-    @GET("$FILTER_ENDPOINT{filterBy}")
-    suspend fun getMeals(
-        @Path("filterBy") filterBy: String
-    ): List<MealDto>
+    //.. filters ..\\
+    @GET(FILTER_ENDPOINT)
+    suspend fun getMealsByArea(
+        @Query("a") area: String
+    ): MealDto
 
-    @GET("$MEAL_DETAILS_ENDPOINT{mealId}")
+    @GET(FILTER_ENDPOINT)
+    suspend fun getMealsByCategory(
+        @Query("c") category: String
+    ): MealDto
+
+    @GET(FILTER_ENDPOINT)
+    suspend fun getMealsByIngredient(
+        @Query("i") ingredient: String
+    ): MealDto
+
+    //.. single item ..\\
+    @GET(MEAL_DETAILS_ENDPOINT)
     suspend fun getMealDetails(
-        @Path("mealId") mealId: String
-    ): List<MealDetailsDto>
+        @Query("i") mealId: String
+    ): MealDetailsDto
 
 }

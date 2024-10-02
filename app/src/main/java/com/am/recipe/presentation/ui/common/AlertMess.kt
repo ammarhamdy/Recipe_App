@@ -1,11 +1,14 @@
 package com.am.recipe.presentation.ui.common
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.animateValue
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
@@ -30,34 +33,86 @@ import com.am.recipe.presentation.model.ErrorType
 import com.am.recipe.presentation.ui.theme.RecipeTheme
 
 @Composable
-fun ErrorPage(
+fun AlertMessCard(
+    @StringRes textId: Int,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+    ){
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(dimensionResource(R.dimen.large_padding))
+                .background(MaterialTheme.colorScheme.onBackground)
+        )
+        AlertPage(
+            textId,
+            MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.background,
+        )
+    }
+}
+
+@Composable
+fun ErrorMessCard(
     errorType: ErrorType,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+    ){
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(dimensionResource(R.dimen.large_padding))
+                .background(MaterialTheme.colorScheme.onBackground)
+        )
+        AlertPage(
+            when(errorType){
+                ErrorType.UNEXPECTED_ERROR -> R.string.unexpected_error
+                ErrorType.IO_ERROR -> R.string.connection_error
+                ErrorType.HTTP_ERROR -> R.string.http_error
+            },
+            MaterialTheme.colorScheme.tertiary,
+            MaterialTheme.colorScheme.background,
+        )
+    }
+}
+
+@Composable
+private fun AlertPage(
+    @StringRes textId: Int,
+    color1: Color,
+    color2: Color,
     modifier: Modifier = Modifier,
     reload: (() -> Unit)? = null
 ) {
-    val errorMess = when(errorType){
-        ErrorType.UNEXPECTED_ERROR -> stringResource(R.string.unexpected_error)
-        ErrorType.IO_ERROR -> stringResource(R.string.connection_error)
-        ErrorType.HTTP_ERROR -> stringResource(R.string.http_error)
-    }
+    val message = stringResource(textId)
     reload?.let {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             modifier = modifier
         ) {
-            TogglingText(errorMess)
+            TogglingText(message, color1, color2)
             Spacer(modifier = Modifier.height(dimensionResource(R.dimen.small_padding)))
             TextButton(onClick = reload) {
                 Text(text = stringResource(R.string.reload))
             }
         }
     } ?:
-    TogglingText(errorMess)
+    TogglingText(message, color1, color2)
 }
 
 @Composable
-fun TogglingText(text: String) {
+private fun TogglingText(
+    text: String,
+    color1: Color,
+    color2: Color,
+) {
     val infiniteTransition = rememberInfiniteTransition(label = "infinite_transition")
     val display by infiniteTransition.animateValue(
         initialValue = true,
@@ -71,8 +126,8 @@ fun TogglingText(text: String) {
             Text(
                 coloredTextBaseCondition(
                     text,
-                    MaterialTheme.colorScheme.tertiary,
-                    MaterialTheme.colorScheme.background
+                    color1,
+                    color2
                 ) { n -> n % 2 == 0 },
                 fontSize = 30.sp
             )
@@ -80,8 +135,8 @@ fun TogglingText(text: String) {
             Text(
                 coloredTextBaseCondition(
                     text,
-                    MaterialTheme.colorScheme.tertiary,
-                    MaterialTheme.colorScheme.background
+                    color1,
+                    color2
                 ) { it % 2 != 0 },
                 fontSize = 30.sp
             )
@@ -106,10 +161,14 @@ fun coloredTextBaseCondition(
     }
 }
 
-@Preview
+@Preview(showBackground = true)
 @Composable
 private fun ErrorPagePreview() {
     RecipeTheme {
-        ErrorPage(ErrorType.HTTP_ERROR)
+        AlertPage(
+            R.string.unexpected_error,
+            MaterialTheme.colorScheme.tertiary,
+            MaterialTheme.colorScheme.onBackground
+        )
     }
 }

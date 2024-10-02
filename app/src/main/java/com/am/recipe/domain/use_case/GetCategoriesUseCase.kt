@@ -14,11 +14,14 @@ class GetCategoriesUseCase(
 
     operator fun invoke() = flow {
         try {
+            emit(SearchKeyState.Loading)
             emit(
                 SearchKeyState.Success(
                     mealRepository
                         .getCategories()
-                        .flatMap { it.toCategoriesList() }
+                        .meals
+                        .map { it.strCategory }
+                        .sorted()
                 )
             )
         } catch (httpE: HttpException) {
@@ -26,6 +29,7 @@ class GetCategoriesUseCase(
         } catch (ioE: IOException) {
             emit(SearchKeyState.Error(ErrorType.IO_ERROR))
         } catch (e: Exception) {
+            e.printStackTrace()
             emit(SearchKeyState.Error(ErrorType.UNEXPECTED_ERROR))
         }
     }

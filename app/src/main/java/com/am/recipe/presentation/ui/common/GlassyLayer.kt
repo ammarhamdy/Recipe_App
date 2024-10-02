@@ -27,8 +27,8 @@ fun GlassyLayer(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        color.copy(alpha = 0.4f),
-                        color.copy(alpha = 0.15f)
+                        color.copy(alpha = 0.5f),
+                        color.copy(alpha = 0.25f)
                     )
                 )
             )

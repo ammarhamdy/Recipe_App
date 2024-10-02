@@ -14,11 +14,14 @@ class GetIngredientsUseCase(
 
     operator fun invoke() = flow {
         try {
+            emit(SearchKeyState.Loading)
             emit(
-                SearchKeyState.Success(
+                SearchKeyState.SuccessWithGroups(
                     mealRepository
                         .getIngredients()
-                        .flatMap { it.toIngredientsList() }
+                        .toIngredientsList()
+                        .groupBy { it.lowercase().first() }
+                        .toSortedMap()
                 )
             )
         } catch (httpE: HttpException) {
@@ -26,6 +29,7 @@ class GetIngredientsUseCase(
         } catch (ioE: IOException) {
             emit(SearchKeyState.Error(ErrorType.IO_ERROR))
         } catch (e: Exception) {
+            e.printStackTrace()
             emit(SearchKeyState.Error(ErrorType.UNEXPECTED_ERROR))
         }
     }

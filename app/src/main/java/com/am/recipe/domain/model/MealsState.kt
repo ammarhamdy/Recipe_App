@@ -10,3 +10,8 @@ sealed class MealsState {
     class Error(val errorType: ErrorType):  MealsState()
 }
 
+fun MealsState.anType() = when(this){
+    is MealsState.Error -> AnimationType.ALERT
+    MealsState.Loading -> AnimationType.LOADING
+    is MealsState.Success -> AnimationType.SUCCESS
+}

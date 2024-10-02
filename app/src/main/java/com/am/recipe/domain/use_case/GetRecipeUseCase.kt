@@ -15,13 +15,14 @@ class GetRecipeUseCase(
 
     operator fun invoke(mealId: String) = flow {
         try {
+            emit(RecipeState.Loading)
+            kotlinx.coroutines.delay(1500L)
             emit(
                 RecipeState.Success(
                     mealRepository
                         .getMealDetails(mealId)
+                        .meals
                         .firstOrNull()
-                        ?.meals
-                        ?.firstOrNull()
                         ?.toRecipe()
                         ?: Recipe.emptyRecipe
                 )
@@ -31,6 +32,7 @@ class GetRecipeUseCase(
         } catch (ioE: IOException) {
             emit(RecipeState.Error(ErrorType.IO_ERROR))
         } catch (e: Exception) {
+            e.printStackTrace()
             emit(RecipeState.Error(ErrorType.UNEXPECTED_ERROR))
         }
     }

@@ -14,11 +14,14 @@ class GetAreasUseCase(
 
     operator fun invoke() = flow {
         try {
+            emit(SearchKeyState.Loading)
             emit(
                 SearchKeyState.Success(
                     mealRepository
                         .getAreas()
-                        .flatMap { it.toAreasList() }
+                        .meals
+                        .map { it.strArea }
+                        .sorted()
                 )
             )
         } catch (httpE: HttpException) {
@@ -26,6 +29,7 @@ class GetAreasUseCase(
         } catch (ioE: IOException) {
             emit(SearchKeyState.Error(ErrorType.IO_ERROR))
         } catch (e: Exception) {
+            e.printStackTrace()
             emit(SearchKeyState.Error(ErrorType.UNEXPECTED_ERROR))
         }
     }

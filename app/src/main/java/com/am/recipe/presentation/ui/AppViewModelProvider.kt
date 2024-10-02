@@ -11,8 +11,10 @@ import com.am.recipe.domain.use_case.GetAreasUseCase
 import com.am.recipe.domain.use_case.GetCategoriesUseCase
 import com.am.recipe.domain.use_case.GetIngredientsUseCase
 import com.am.recipe.domain.use_case.GetMealsUseCase
+import com.am.recipe.domain.use_case.GetRecipeUseCase
 import com.am.recipe.presentation.ui.home.HomeViewModel
 import com.am.recipe.presentation.ui.meal_list.MealsViewModel
+import com.am.recipe.presentation.ui.recipe.RecipeViewModel
 
 object AppViewModelProvider {
 
@@ -32,6 +34,12 @@ object AppViewModelProvider {
         initializer {
             val repo = mealApplication().application.mealsRepository
             MealsViewModel(this.createSavedStateHandle(), GetMealsUseCase(repo))
+        }
+
+        // initializer for meals view model
+        initializer {
+            val repo = mealApplication().application.mealsRepository
+            RecipeViewModel(this.createSavedStateHandle(), GetRecipeUseCase(repo))
         }
 
 

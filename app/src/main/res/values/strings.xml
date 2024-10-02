@@ -1,12 +1,12 @@
 <resources>
     <string name="app_name">Recipe</string>
     <string name="search_screen_title">Search</string>
-    <string name="meal_list_title">recipes</string>
-    <string name="recipe_title">recipe</string>
+    <string name="meal_list_title">Recipes</string>
+    <string name="recipe_title">Recipe</string>
     <string name="home_title">Recipe</string>
-    <string name="area">Area</string>
-    <string name="ingredient">Ingredient</string>
-    <string name="category">Category</string>
+    <string name="area">Areas</string>
+    <string name="ingredient">Ingredients</string>
+    <string name="category">Categories</string>
 
     <string name="back_button">back button</string>
     <string name="http_error">request has not succeeded</string>
@@ -15,4 +15,7 @@
     <string name="reload">reload</string>
 
     <string name="unknown_modified_date">Unknown modified date</string>
+    <string name="recipe_is_exported">Recipe has exported</string>
+    <string name="ok">OK</string>
+    <string name="sorry_can_not_find_recipes">Sorry, can\'t find recipes</string>
 </resources>

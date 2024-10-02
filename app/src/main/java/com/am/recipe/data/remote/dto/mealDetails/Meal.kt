@@ -1,7 +1,9 @@
 package com.am.recipe.data.remote.dto.mealDetails
 
 import com.am.recipe.domain.model.Recipe
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class MealDetails(
     val idMeal: String, // id
     val strMeal: String, // title
@@ -90,9 +92,9 @@ fun MealDetails.toRecipe() =
             if (isValid(strIngredient19) && isValid(strMeasure19)) "$strIngredient19#$strMeasure19" else null,
             if (isValid(strIngredient20) && isValid(strMeasure20)) "$strIngredient20#$strMeasure20" else null,
         ),
+        dateModified,
         strYoutube,
         strSource,
-        dateModified
     )
 
 

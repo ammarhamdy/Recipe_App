@@ -8,12 +8,16 @@ import java.util.Date
 
 class HTMLGen(private val recipe: Recipe) {
 
-    fun exportRecipe(): Boolean{
-        val path = Environment
-            .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            .toString()
-        return try { createFile(path) } catch (ignored: Exception){ false }
-    }
+    fun exportRecipe(): Boolean =
+        try {
+            createFile(
+                Environment
+                    .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    .toString())
+        } catch (ignored: Exception) {
+            ignored.printStackTrace()
+            false
+        }
 
     private fun createFile(path: String): Boolean {
         val fileName = "recipe.${recipe.title}.${Date().time}.html"
@@ -116,9 +120,9 @@ class HTMLGen(private val recipe: Recipe) {
     """.trimIndent()
 
     private fun ingredientHtmlList() =
-        recipe.ingredientMeasureList.joinToString {
-            "<li>${it.replace('#', ' ')}</li>\n"
-        }
+        recipe
+            .ingredientMeasureList
+            .joinToString("\n") { "<li>${it.replace('#', ' ')}</li>" }
 
 
 }
